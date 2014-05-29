@@ -35,6 +35,8 @@ def camel_to_underscore(text):
     s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
     if s1 == 'ww_wosoite':
         return 'www_osoite'
+    if s1 == 'tyoanantaja':
+        return 'tyonantaja'
     return s1.replace('__', '_')
 
 def clean_element(val, name=''):
@@ -56,8 +58,8 @@ def clean_element(val, name=''):
         attrib = None
     elif name == 'ryhma':
         d = attrib
-        if 'Henkilot' in val:
-            d['henkilot'] = [clean_element(x, name='henkilo') for x in val['Henkilot'].getchildren()]
+        if hasattr(val, 'Henkilot'):
+            d['henkilot'] = [clean_element(x, name='henkilo') for x in val.Henkilot.getchildren()]
         return d
 
     if name == 'allekirjoittajat':
@@ -115,6 +117,6 @@ for action, elem in context:
 
     obj = objectify.fromstring(etree.tostring(elem))
     obj = clean_project(obj)
-    s = json.dumps(obj, ensure_ascii=True)
+    s = json.dumps(obj, ensure_ascii=False, encoding='utf8')
     outf.write(s)
     outf.write('\n')
