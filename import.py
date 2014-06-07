@@ -5,6 +5,14 @@ from lxml import etree, objectify
 import json
 import re
 import codecs
+import argparse
+
+parser = argparse.ArgumentParser(description='Convert HARE XML into JSON')
+parser.add_argument('input', metavar='INPUT', type=str, help='input XML file')
+parser.add_argument('--mongo', action='store_true', help='output in mongodump format')
+parser.add_argument('--output', metavar='FILE', type=str, help='output file')
+
+args = parser.parse_args()
 
 def clean_text(text):
     text = text.replace('\n', ' ')
@@ -32,12 +40,35 @@ def objectified_to_python(o):
 
 def camel_to_underscore(text):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
-    s1 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-    if s1 == 'ww_wosoite':
-        return 'www_osoite'
+    s1 = s1.lower()
     if s1 == 'tyoanantaja':
         return 'tyonantaja'
+    elif s1 == 'viimemuutos':
+        return '_updated'
+    elif s1 == 'luontiaika':
+        return '_created'
+    elif s1 == 'asettamis_paatos_liitteet':
+        return 'asettamispaatos_liitteet'
+    elif s1 == 'organisointi_tapa':
+        return 'organisointitapa'
+    elif s1 == 'asiankasittelye_kssa_he':
+        return 'asian_kasittely_ekssa_he'
+    elif s1 == 'ajankohta_he_v_noon':
+        return 'ajankohta_he_vn'
     return s1.replace('__', '_')
+
+def clean_date(val, d):
+    assert isinstance(val, objectify.StringElement)
+    assert not val.getchildren()
+    for k in d.values():
+        if k:
+            break
+    else:
+        return None
+    ts = '%s-%s-%s' % (d['vuosi'], d['kuukausi'], d['paiva'])
+    if 'minuutti' in d:
+        ts += 'T%s:%s:%s' % (d['tunti'], d['minuutti'], d['sekuntti'])
+    return ts
 
 def clean_element(val, name=''):
     if hasattr(val, 'attrib') and val.attrib:
@@ -48,6 +79,8 @@ def clean_element(val, name=''):
             if not dval:
                 dval = None
             attrib[camel_to_underscore(key)] = dval
+        if 'vuosi' in attrib:
+            return clean_date(val, attrib)
     else:
         attrib = None
 
@@ -101,11 +134,19 @@ def clean_project(obj):
     d['_id'] = project_id
     return clean_element(d)
 
-f = open('hare.xml')
+f = open(args.input)
 context = etree.iterparse(f)
 count = 0
 
-outf = codecs.open('hare-2014-05-29.json', 'w', 'utf8')
+if args.output:
+    out_fname = args.output
+else:
+    out_fname = 'hare.json'
+
+outf = codecs.open(out_fname, 'w', 'utf8')
+if not args.mongo:
+    outf.write('[')
+
 for action, elem in context:
     if action != 'end' or elem.tag != 'Hanke':
         continue
@@ -117,6 +158,12 @@ for action, elem in context:
 
     obj = objectify.fromstring(etree.tostring(elem))
     obj = clean_project(obj)
-    s = json.dumps(obj, ensure_ascii=False, encoding='utf8')
+    json_args = {'ensure_ascii': False, 'encoding': 'utf8'}
+    if not args.mongo:
+        json_args['indent'] = 4
+    s = json.dumps(obj, **json_args)
     outf.write(s)
     outf.write('\n')
+
+if not args.mongo:
+    outf.write(']')

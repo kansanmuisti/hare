@@ -43,3 +43,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+local_settings.py
+local_config
