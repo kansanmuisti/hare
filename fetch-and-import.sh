@@ -11,7 +11,7 @@ unzip $TMPDIR/hare.zip -d $TMPDIR > /dev/null
 
 iconv -f iso8859-1 -t utf8 < $TMPDIR/HARE-XML-Export-VM.xml > $TMPDIR/hare-utf8.xml
 
-pypy conv-chars.py $TMPDIR/hare-utf8.xml > $TMPDIR/hare.xml
+pypy conv-chars.py $TMPDIR/hare-utf8.xml | tidy -xml -utf8 -indent > $TMPDIR/hare.xml
 
 python import.py --output $TMPDIR/hare.json --mongo $TMPDIR/hare.xml
 

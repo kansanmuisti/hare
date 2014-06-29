@@ -55,6 +55,8 @@ def camel_to_underscore(text):
         return 'asian_kasittely_ekssa_he'
     elif s1 == 'ajankohta_he_v_noon':
         return 'ajankohta_he_vn'
+    elif s1 == 'ww_wosoite':
+        return 'www_osoite'
     return s1.replace('__', '_')
 
 def clean_date(val, d):
@@ -135,7 +137,7 @@ def clean_project(obj):
     return clean_element(d)
 
 f = open(args.input)
-context = etree.iterparse(f)
+context = etree.iterparse(f, huge_tree=True)
 count = 0
 
 if args.output:
