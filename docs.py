@@ -30,6 +30,7 @@ def download_doc(doc, url):
     if os.path.exists(fpath):
         return
 
+    global download_count
     print("%s: %s" % (download_count, url.encode('utf8')))
     download_count += 1
     resp = requests.get(url, stream=True)
